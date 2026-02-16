@@ -67,7 +67,7 @@ async def main():
         message_text = "Reported via tool - serious violation of rules"
         print("از متن پیش‌فرض استفاده شد")
 
-    try_count = input("\nتعداد گزارش (پیشنهاد: 1 تا 3): ").strip()
+    try_count = input("\nتعداد گزارش (پیشنهاد: 1 تا 100): ").strip()
     try:
         repeat = max(1, min(int(try_count or 1), 10))
     except:
