@@ -1,76 +1,124 @@
 from telethon import TelegramClient
-from telethon.tl.functions.messages import ReportSpamRequest
+from telethon.tl.functions.messages import ReportRequest
+from telethon.tl.types import (
+    InputReportReasonSpam, InputReportReasonViolence,
+    InputReportReasonPornography, InputReportReasonChildAbuse,
+    InputReportReasonOther, InputReportReasonGeoIrrelevant,
+    InputReportReasonFake, InputReportReasonCopyright,
+    InputReportReasonIllegalDrugs, InputReportReasonPersonalDetails
+)
 from telethon.errors import FloodWaitError, RPCError
 import asyncio
 import getpass
+import random
+
+# رنگ‌ها برای Termux / کنسول
+GREEN = "\033[92m"
+RED   = "\033[91m"
+RESET = "\033[0m"
+
+REASONS = {
+    "1":  ("Spam", InputReportReasonSpam()),
+    "2":  ("Violence", InputReportReasonViolence()),
+    "3":  ("Pornography", InputReportReasonPornography()),
+    "4":  ("Child abuse", InputReportReasonChildAbuse()),
+    "5":  ("Other", InputReportReasonOther()),
+    "6":  ("Fake", InputReportReasonFake()),
+    "7":  ("Copyright", InputReportReasonCopyright()),
+    "8":  ("Illegal drugs", InputReportReasonIllegalDrugs()),
+    "9":  ("Personal details / انتشار اطلاعات شخصی", InputReportReasonPersonalDetails()),
+    "10": ("Irrelevant geo", InputReportReasonGeoIrrelevant()),
+}
 
 async def main():
-    print("Telegram Channel Spam Report Tool")
-    print("=================================\n")
+    print("Telegram Report Tool\n===================\n")
 
-    # Get credentials from user
-    api_id = input("Enter your API ID: ").strip()
-    api_hash = getpass.getpass("Enter your API Hash (input hidden): ").strip()
-    phone = input("Enter phone number (with country code, e.g. +989123456789): ").strip()
+    api_id   = input("API ID: ").strip()
+    api_hash = getpass.getpass("API Hash (hidden): ").strip()
+    phone    = input("Phone number (+98...): ").strip()
 
-    channel_input = input("\nEnter channel username or ID (e.g. @channel or -1001234567890): ").strip()
-
-    # Clean channel input
+    channel_input = input("\nChannel (@username یا -100xxxxxxxxxx): ").strip()
     if channel_input.startswith('@'):
         channel = channel_input[1:]
     else:
         channel = channel_input
 
-    print("\nConnecting to Telegram...\n")
+    print("\nنوع ریپورت:")
+    for k, (name, _) in REASONS.items():
+        print(f"  {k:2}) {name}")
+    reason_key = input("\nشماره نوع ریپورت (مثلاً 9): ").strip()
 
-    # Create client
+    if reason_key not in REASONS:
+        print(f"{RED}شماره نامعتبر → Spam انتخاب شد{RESET}")
+        reason_name, reason_obj = REASONS["1"]
+    else:
+        reason_name, reason_obj = REASONS[reason_key]
+
+    message_text = input("\nتوضیح ریپورت (message) چی بنویسم؟\n"
+                         "→ اگر خالی بذاری پیش‌فرض می‌ره: ").strip()
+
+    if not message_text:
+        message_text = "Reported via tool"
+        print("توضیح پیش‌فرض استفاده شد")
+    elif len(message_text) < 5:
+        print(f"{RED}متن خیلی کوتاهه → پیش‌فرض استفاده می‌شه{RESET}")
+        message_text = "Reported via tool"
+
+    try_count_str = input(f"\nچند بار گزارش بفرستم؟ (پیشنهاد: ۱ تا ۵): ").strip()
+    try:
+        repeat = max(1, min(int(try_count_str or 1), 10))
+    except:
+        repeat = 1
+
+    print(f"\n→ {repeat} گزارش با دلیل: {reason_name}")
+    print(f"→ توضیح: {message_text}\n")
+
     client = TelegramClient('report_session', api_id, api_hash)
 
     try:
         await client.start(phone=phone)
-        print("Login successful")
+        print("ورود موفق")
 
         entity = await client.get_entity(channel)
+        title = getattr(entity, 'title', channel)
+        print(f"هدف: {title}\n")
 
-        title = entity.title if hasattr(entity, 'title') else channel
-        print(f"Target: {title}")
+        for i in range(1, repeat + 1):
+            print(f"تلاش {i}/{repeat} ...")
+            try:
+                await client(ReportRequest(
+                    peer=entity,
+                    id=[],                      # بدون اشاره به پیام خاص
+                    reason=reason_obj,
+                    message=message_text        # توضیحی که کاربر وارد کرد
+                ))
+                print(f"{GREEN}موفق - گزارش {i} ارسال شد{RESET}")
+            except FloodWaitError as e:
+                wait_sec = e.seconds
+                print(f"{RED}Flood wait → باید {wait_sec} ثانیه صبر کنی (~{wait_sec//60} دقیقه){RESET}")
+                await asyncio.sleep(wait_sec)
+            except RPCError as e:
+                print(f"{RED}خطا: {e}{RESET}")
+                break
+            except Exception as e:
+                print(f"{RED}خطای غیرمنتظره: {type(e).__name__}{RESET}")
+                print(str(e))
+                break
 
-        print("\nSending spam report...")
+            # فاصله بین درخواست‌ها (خیلی مهمه!)
+            await asyncio.sleep(12 + random.uniform(0, 9))   # ۱۲ تا ۲۱ ثانیه
 
-        # Send spam report
-        result = await client(ReportSpamRequest(peer=entity))
-
-        if result:
-            print("Spam report sent successfully")
-        else:
-            print("Report sent (no detailed result returned)")
-
-    except FloodWaitError as e:
-        wait_min = round(e.seconds / 60, 1)
-        wait_hour = round(e.seconds / 3600, 1)
-        print(f"Flood wait error: You must wait {e.seconds} seconds (~{wait_min} min / ~{wait_hour} hours)")
-    except RPCError as e:
-        print(f"Telegram error: {e}")
-        error_str = str(e).lower()
-        if "peer_id_invalid" in error_str:
-            print("→ Invalid channel username or ID")
-        elif "user_not_participant" in error_str or "chat_write_forbidden" in error_str:
-            print("→ You need to be a member of the channel to report it")
-        elif "auth_key_unregistered" in error_str:
-            print("→ Incorrect api_id or api_hash")
     except Exception as e:
-        print(f"Unexpected error: {type(e).name}")
-        print(str(e))
+        print(f"خطای کلی: {e}")
 
     finally:
         await client.disconnect()
-        print("\nSession disconnected.")
+        print("\nاتصال قطع شد.")
 
-# Run the script
 if __name__ == '__main__':
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nScript terminated by user.")
+        print("\nمتوقف شد توسط کاربر.")
     except Exception as e:
-        print(f"Critical error: {e}")
+        print(f"خطای بحرانی: {e}")
