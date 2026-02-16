@@ -1,52 +1,59 @@
 from telethon import TelegramClient
-from telethon.tl.functions.messages import ReportRequest
+from telethon.tl.functions.account import ReportPeerRequest
 from telethon.tl.types import (
-    InputReportReasonSpam, InputReportReasonViolence,
-    InputReportReasonPornography, InputReportReasonChildAbuse,
-    InputReportReasonOther, InputReportReasonGeoIrrelevant,
-    InputReportReasonFake, InputReportReasonCopyright,
-    InputReportReasonIllegalDrugs, InputReportReasonPersonalDetails
+    InputReportReasonSpam,
+    InputReportReasonViolence,
+    InputReportReasonPornography,
+    InputReportReasonChildAbuse,
+    InputReportReasonOther,
+    InputReportReasonFake,
+    InputReportReasonCopyright,
+    InputReportReasonGeoIrrelevant,
+    InputReportReasonIllegalDrugs,
+    InputReportReasonPersonalDetails,
 )
 from telethon.errors import FloodWaitError, RPCError
 import asyncio
 import getpass
 import random
 
-# رنگ‌ها برای Termux / کنسول
 GREEN = "\033[92m"
-RED   = "\033[91m"
+RED = "\033[91m"
 RESET = "\033[0m"
 
 REASONS = {
-    "1":  ("Spam", InputReportReasonSpam()),
-    "2":  ("Violence", InputReportReasonViolence()),
-    "3":  ("Pornography", InputReportReasonPornography()),
-    "4":  ("Child abuse", InputReportReasonChildAbuse()),
-    "5":  ("Other", InputReportReasonOther()),
-    "6":  ("Fake", InputReportReasonFake()),
-    "7":  ("Copyright", InputReportReasonCopyright()),
-    "8":  ("Illegal drugs", InputReportReasonIllegalDrugs()),
-    "9":  ("Personal details / انتشار اطلاعات شخصی", InputReportReasonPersonalDetails()),
+    "1": ("Spam", InputReportReasonSpam()),
+    "2": ("Violence", InputReportReasonViolence()),
+    "3": ("Pornography", InputReportReasonPornography()),
+    "4": ("Child abuse", InputReportReasonChildAbuse()),
+    "5": ("Other", InputReportReasonOther()),
+    "6": ("Fake", InputReportReasonFake()),
+    "7": ("Copyright", InputReportReasonCopyright()),
+    "8": ("Illegal drugs", InputReportReasonIllegalDrugs()),
+    "9": ("Personal details / انتشار اطلاعات شخصی", InputReportReasonPersonalDetails()),
     "10": ("Irrelevant geo", InputReportReasonGeoIrrelevant()),
 }
 
+
 async def main():
-    print("Telegram Report Tool\n===================\n")
+    print("Telegram Report Tool")
+    print("===================\n")
 
-    api_id   = input("API ID: ").strip()
+    api_id = input("API ID: ").strip()
     api_hash = getpass.getpass("API Hash (hidden): ").strip()
-    phone    = input("Phone number (+98...): ").strip()
+    phone = input("Phone number (+98...): ").strip()
 
-    channel_input = input("\nChannel (@username یا -100xxxxxxxxxx): ").strip()
+    channel_input = input("\nChannel (@username or -100xxxxxxxxxx): ").strip()
     if channel_input.startswith('@'):
         channel = channel_input[1:]
     else:
         channel = channel_input
 
-    print("\nنوع ریپورت:")
+    print("\nنوع گزارش:")
     for k, (name, _) in REASONS.items():
         print(f"  {k:2}) {name}")
-    reason_key = input("\nشماره نوع ریپورت (مثلاً 9): ").strip()
+
+    reason_key = input("\nشماره نوع گزارش (مثلاً 9): ").strip()
 
     if reason_key not in REASONS:
         print(f"{RED}شماره نامعتبر → Spam انتخاب شد{RESET}")
@@ -54,19 +61,15 @@ async def main():
     else:
         reason_name, reason_obj = REASONS[reason_key]
 
-    message_text = input("\nتوضیح ریپورت (message) چی بنویسم؟\n"
-                         "→ اگر خالی بذاری پیش‌فرض می‌ره: ").strip()
+    message_text = input("\nتوضیح گزارش (message):\nاگر خالی بذاری پیش‌فرض می‌ره: ").strip()
 
-    if not message_text:
-        message_text = "Reported via tool"
-        print("توضیح پیش‌فرض استفاده شد")
-    elif len(message_text) < 5:
-        print(f"{RED}متن خیلی کوتاهه → پیش‌فرض استفاده می‌شه{RESET}")
-        message_text = "Reported via tool"
+    if not message_text or len(message_text) < 8:
+        message_text = "Reported via tool - serious violation of rules"
+        print("از متن پیش‌فرض استفاده شد")
 
-    try_count_str = input(f"\nچند بار گزارش بفرستم؟ (پیشنهاد: ۱ تا ۵): ").strip()
+    try_count = input("\nتعداد گزارش (پیشنهاد: 1 تا 3): ").strip()
     try:
-        repeat = max(1, min(int(try_count_str or 1), 10))
+        repeat = max(1, min(int(try_count or 1), 10))
     except:
         repeat = 1
 
@@ -86,27 +89,29 @@ async def main():
         for i in range(1, repeat + 1):
             print(f"تلاش {i}/{repeat} ...")
             try:
-                await client(ReportRequest(
+                await client(ReportPeerRequest(
                     peer=entity,
-                    id=[],                      # بدون اشاره به پیام خاص
                     reason=reason_obj,
-                    message=message_text        # توضیحی که کاربر وارد کرد
+                    message=message_text
                 ))
                 print(f"{GREEN}موفق - گزارش {i} ارسال شد{RESET}")
             except FloodWaitError as e:
-                wait_sec = e.seconds
-                print(f"{RED}Flood wait → باید {wait_sec} ثانیه صبر کنی (~{wait_sec//60} دقیقه){RESET}")
-                await asyncio.sleep(wait_sec)
+                wait = e.seconds
+                print(f"{RED}Flood wait → باید {wait} ثانیه صبر کنی (~{wait//60} دقیقه){RESET}")
+                await asyncio.sleep(wait)
             except RPCError as e:
+                err = str(e).lower()
                 print(f"{RED}خطا: {e}{RESET}")
+                if "user_not_participant" in err:
+                    print("→ باید عضو کانال باشی")
+                elif "peer_id_invalid" in err:
+                    print("→ آیدی کانال اشتباه است")
                 break
             except Exception as e:
-                print(f"{RED}خطای غیرمنتظره: {type(e).__name__}{RESET}")
-                print(str(e))
+                print(f"{RED}خطای غیرمنتظره: {type(e).__name__} - {e}{RESET}")
                 break
 
-            # فاصله بین درخواست‌ها (خیلی مهمه!)
-            await asyncio.sleep(12 + random.uniform(0, 9))   # ۱۲ تا ۲۱ ثانیه
+            await asyncio.sleep(15 + random.uniform(5, 15))  # فاصله ۱۵ تا ۳۰ ثانیه
 
     except Exception as e:
         print(f"خطای کلی: {e}")
@@ -114,6 +119,7 @@ async def main():
     finally:
         await client.disconnect()
         print("\nاتصال قطع شد.")
+
 
 if __name__ == '__main__':
     try:
