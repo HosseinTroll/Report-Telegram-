@@ -69,7 +69,7 @@ async def main():
 
     try_count = input("\nتعداد گزارش (پیشنهاد: 1 تا 100): ").strip()
     try:
-        repeat = max(1, min(int(try_count or 1), 10))
+        repeat = max(1, min(int(try_count or 1), 100))
     except:
         repeat = 1
 
