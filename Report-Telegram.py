@@ -49,11 +49,11 @@ async def main():
     else:
         channel = channel_input
 
-    print("\nنوع گزارش:")
+    print("\nNoe Gozaresh:")
     for k, (name, _) in REASONS.items():
         print(f"  {k:2}) {name}")
 
-    reason_key = input("\nشماره نوع گزارش (مثلاً 9): ").strip()
+    reason_key = input("\nTedad: ").strip()
 
     if reason_key not in REASONS:
         print(f"{RED}شماره نامعتبر → Spam انتخاب شد{RESET}")
@@ -61,13 +61,13 @@ async def main():
     else:
         reason_name, reason_obj = REASONS[reason_key]
 
-    message_text = input("\nتوضیح گزارش (message):\nاگر خالی بذاری پیش‌فرض می‌ره: ").strip()
+    message_text = input("\n Tozih Goraresh (message):\nDalil: ").strip()
 
     if not message_text or len(message_text) < 8:
         message_text = "Reported via tool - serious violation of rules"
         print("از متن پیش‌فرض استفاده شد")
 
-    try_count = input("\nتعداد گزارش (پیشنهاد: 1 تا 100): ").strip()
+    try_count = input("\Tedad Gozaresh (پیشنهاد: 1 تا 100): ").strip()
     try:
         repeat = max(1, min(int(try_count or 1), 100))
     except:
@@ -84,7 +84,7 @@ async def main():
 
         entity = await client.get_entity(channel)
         title = getattr(entity, 'title', channel)
-        print(f"هدف: {title}\n")
+        print(f"Target: {title}\n")
 
         for i in range(1, repeat + 1):
             print(f"تلاش {i}/{repeat} ...")
@@ -94,7 +94,7 @@ async def main():
                     reason=reason_obj,
                     message=message_text
                 ))
-                print(f"{GREEN}موفق - گزارش {i} ارسال شد{RESET}")
+                print(f"{GREEN}Moafag - Gozaresh {i} Report ! {RESET}")
             except FloodWaitError as e:
                 wait = e.seconds
                 print(f"{RED}Flood wait → باید {wait} ثانیه صبر کنی (~{wait//60} دقیقه){RESET}")
